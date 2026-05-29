@@ -1,0 +1,104 @@
+<mxfile host="Electron" modified="2026-05-28T12:00:00.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="er-diagram" name="低空监管E-R图">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Entities -->
+        <mxCell id="org" value="&lt;b&gt;Organization&lt;/b&gt;&lt;br&gt;(所属单位)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="drone" value="&lt;b&gt;Drone&lt;/b&gt;&lt;br&gt;(无人机设备)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="360" y="80" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pilot_drone" value="&lt;b&gt;Pilot_Drone&lt;/b&gt;&lt;br&gt;(飞手设备授权)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pilot" value="&lt;b&gt;Pilot&lt;/b&gt;&lt;br&gt;(飞手/驾驶员)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="920" y="80" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="site" value="&lt;b&gt;TakeoffLandingSite&lt;/b&gt;&lt;br&gt;(合法起降点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="mission" value="&lt;b&gt;FlightMission&lt;/b&gt;&lt;br&gt;(飞行任务申请)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="280" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="telemetry" value="&lt;b&gt;Telemetry&lt;/b&gt;&lt;br&gt;(高频遥测点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="640" y="220" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="track" value="&lt;b&gt;FlightTrack&lt;/b&gt;&lt;br&gt;(实际飞行航线)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="640" y="340" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nofly" value="&lt;b&gt;NoFlyZone&lt;/b&gt;&lt;br&gt;(时空禁飞管控区)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="violation" value="&lt;b&gt;ViolationEvent&lt;/b&gt;&lt;br&gt;(违规报警事件)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="disposal" value="&lt;b&gt;DisposalRecord&lt;/b&gt;&lt;br&gt;(执法处置记录)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="640" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="authority" value="&lt;b&gt;Authority&lt;/b&gt;&lt;br&gt;(监管执法部门)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="920" y="480" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" value="拥有" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="org" target="drone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="e2" value="授权关联" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="drone" target="pilot_drone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="e3" value="授权关联" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="pilot" target="pilot_drone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e4" value="执行" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="drone" target="mission">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e5" value="负责操控" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="pilot" target="mission">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="295" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e6" value="起降场地" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="site" target="mission">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e7" value="产生高频遥测" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="mission" target="telemetry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e8" value="生成唯一航线" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmandOne;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="mission" target="track">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e9" value="涉事任务" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="mission" target="violation">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e10" value="时空相交触发" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="nofly" target="violation">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e11" value="对应执法" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmandOne;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="violation" target="disposal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e12" value="下达处罚" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;startArrow=ERmandOne;endFill=0;startFill=0;" edge="1" parent="1" source="authority" target="disposal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

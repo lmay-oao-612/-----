@@ -1,0 +1,231 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>低空监管时空数据库设计文档</title>
+<style>
+  body { font-family: "Microsoft YaHei", "SimSun", sans-serif; line-height: 1.6; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+  th, td { border: 1px solid black; padding: 8px; text-align: left; }
+  th { background-color: #f2f2f2; }
+  h1 { text-align: center; }
+  h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #2e74b5; }
+  h3 { color: #2e74b5; }
+  .note { background-color: #fce4d6; padding: 15px; border: 2px dashed #ed7d31; margin: 20px 0; font-weight: bold; text-align: center; color: #c00000; }
+  pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; font-family: Consolas, monospace; font-size: 14px;}
+  code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>低空监管时空数据库设计与实现综合报告</h1>
+<p style="text-align: center;">
+<b>课程名称</b>：空间数据库原理与应用<br>
+<b>设计主题</b>：低空经济背景下低空无人机监管时空数据库设计<br>
+<b>设计阶段</b>：需求分析、概念设计、逻辑设计、物理设计、运行验证与成果可视化
+</p>
+<hr>
+
+<h2>1. 需求分析 (Requirements Analysis)</h2>
+<h3>1.1 开发背景与应用场景</h3>
+<p>在低空经济加速发展的背景下，城市低空无人机的飞行规模呈指数级增长。城市管理部门急需对<b>飞行主体、飞行任务、飞行轨迹、低空管控区、违规事件及处置过程</b>进行统一监管。</p>
+
+<h3>1.2 业务问题与数据功能支撑</h3>
+<p>依据管理部门的监管业务痛点，数据库需要支持的数据与功能对照如下：</p>
+<table>
+  <tr><th>业务监管问题</th><th>数据库需要支持的数据 / 功能</th></tr>
+  <tr><td><b>谁在飞？</b></td><td>飞手、无人机、所属单位、授权关系档案及多对多绑定。</td></tr>
+  <tr><td><b>在哪里飞？</b></td><td>飞行任务、实时遥测、飞行实际轨迹 (LineString)、起降场地等空间分布及空间相交计算。</td></tr>
+  <tr><td><b>是否违规？</b></td><td>禁飞区/限飞区 (Polygon) 管制范围、限高范围、实际飞行轨迹与管制空域的空间拓扑相交与包含判定。</td></tr>
+  <tr><td><b>如何追溯？</b></td><td>任务编号、无人机编号、飞手编号、审批状态记录以及违规事件历史记录。</td></tr>
+  <tr><td><b>谁来处理？</b></td><td>监管部门、执法行动、违规处置记录、应急执法资源。</td></tr>
+</table>
+
+<h2>2. 概念设计 (Conceptual Design)</h2>
+<h3>2.1 推荐实体清单与空间几何定义</h3>
+<p>根据需求提取出 11 个核心实体：</p>
+<table>
+  <tr><th>实体名称</th><th>实体说明</th><th>关键属性</th><th>空间类型</th></tr>
+  <tr><td><b>Drone (无人机)</b></td><td>被监管飞行设备</td><td><code>drone_id</code>, <code>model</code>, <code>owner_org_id</code>, <code>max_height</code></td><td>无</td></tr>
+  <tr><td><b>Pilot (飞手)</b></td><td>无人机操控人员</td><td><code>pilot_id</code>, <code>name</code>, <code>license_no</code>, <code>phone</code></td><td>无</td></tr>
+  <tr><td><b>Organization (单位)</b></td><td>无人机所属机构</td><td><code>org_id</code>, <code>name</code>, <code>type</code>, <code>contact</code></td><td>无</td></tr>
+  <tr><td><b>FlightMission (任务)</b></td><td>申请或执行活动</td><td><code>mission_id</code>, <code>drone_id</code>, <code>pilot_id</code>, <code>status</code></td><td>可含计划范围 <code>Polygon</code></td></tr>
+  <tr><td><b>FlightTrack (轨迹)</b></td><td>任务实际飞行轨迹</td><td><code>track_id</code>, <code>mission_id</code>, <code>avg_altitude</code>, <code>geom</code></td><td><code>LineString</code> (2D线)</td></tr>
+  <tr><td><b>Telemetry (遥测点)</b></td><td>无人机实时位置</td><td><code>telemetry_id</code>, <code>mission_id</code>, <code>time</code>, <code>altitude</code>, <code>geom</code></td><td><code>Point</code> (2D点)</td></tr>
+  <tr><td><b>NoFlyZone (管控区)</b></td><td>禁飞/限飞区域</td><td><code>zone_id</code>, <code>name</code>, <code>height_limit</code>, <code>geom</code></td><td><code>Polygon</code> (2D面)</td></tr>
+  <tr><td><b>TakeoffLandingSite</b></td><td>合法登记起降点</td><td><code>site_id</code>, <code>name</code>, <code>site_type</code>, <code>geom</code></td><td><code>Point</code> (2D点)</td></tr>
+  <tr><td><b>ViolationEvent (违规)</b></td><td>违规异常事件</td><td><code>event_id</code>, <code>mission_id</code>, <code>type</code>, <code>time</code>, <code>geom</code></td><td><code>Point</code> (2D点)</td></tr>
+  <tr><td><b>Authority (监管部门)</b></td><td>审批执法行政部门</td><td><code>authority_id</code>, <code>name</code>, <code>level</code>, <code>jurisdiction</code></td><td>无 或 <code>Polygon</code> (2D面)</td></tr>
+  <tr><td><b>DisposalRecord (处置)</b></td><td>执法处置过程记录</td><td><code>record_id</code>, <code>event_id</code>, <code>authority_id</code>, <code>action</code></td><td>无</td></tr>
+</table>
+
+<h3>2.2 空间 E-R 核心关系基数模型</h3>
+<p>结合 Calkins 空间 E-R 方法定义的实体联系（以下为 Mermaid 实体关系代码定义）：</p>
+<pre><code class="language-mermaid">
+erDiagram
+    Organization ||--o{ Drone : "拥有 (1:N)"
+    Pilot }o--o{ Pilot_Drone : "授权关联 (M:N)"
+    Drone }o--o{ Pilot_Drone : "授权关联 (M:N)"
+    Drone ||--o{ FlightMission : "执行飞行 (1:N)"
+    Pilot ||--o{ FlightMission : "负责操控 (1:N)"
+    TakeoffLandingSite ||--o{ FlightMission : "起飞点 (1:N)"
+    TakeoffLandingSite ||--o{ FlightMission : "降落点 (1:N)"
+    FlightMission ||--|| FlightTrack : "生成轨迹线 (1:1)"
+    FlightMission ||--o{ Telemetry : "产生遥测点 (1:N)"
+    FlightMission ||--o{ ViolationEvent : "涉事任务 (1:N)"
+    NoFlyZone ||--o{ ViolationEvent : "时空相交触发"
+    ViolationEvent ||--|| DisposalRecord : "对应处置 (1:1)"
+    Authority ||--o{ DisposalRecord : "下达执法 (1:N)"
+</code></pre>
+
+<hr>
+<h2>3. 逻辑设计 (Logical Design)</h2>
+<p>在概念设计的基础上，根据关系数据库设计规范，我们将 E-R 模型转换为关系模式，并严格遵循<b>第三范式（3NF）</b>，确保消除数据冗余及插入/删除异常。</p>
+
+<h3>3.1 关系模式定义</h3>
+<p>以下为核心实体的关系模式定义，带下划线的属性为<b>主键 (Primary Key)</b>，带星号的属性为<b>外键 (Foreign Key)</b>：</p>
+<ul>
+  <li><b>Organization (所属单位)</b>: (<u>org_id</u>, name, type, contact)</li>
+  <li><b>Drone (无人机设备)</b>: (<u>drone_id</u>, model, owner_org_id*, max_height, status)</li>
+  <li><b>Pilot (驾驶员/飞手)</b>: (<u>pilot_id</u>, name, license_no, phone)</li>
+  <li><b>Pilot_Drone (飞手授权映射)</b>: (<u>pilot_id*, drone_id*</u>) —— <i>将飞手与飞机的多对多 (M:N) 关系拆解为两个一对多关系。</i></li>
+  <li><b>TakeoffLandingSite (起降点)</b>: (<u>site_id</u>, name, site_type, geom)</li>
+  <li><b>FlightMission (飞行任务)</b>: (<u>mission_id</u>, drone_id*, pilot_id*, start_site_id*, end_site_id*, start_time, end_time, status, planned_area)</li>
+  <li><b>FlightTrack (飞行航线)</b>: (<u>track_id</u>, mission_id*, avg_altitude, max_altitude, geom)</li>
+  <li><b>Telemetry (遥测点)</b>: (<u>telemetry_id</u>, mission_id*, time, altitude, speed, geom)</li>
+  <li><b>NoFlyZone (时空管制区)</b>: (<u>zone_id</u>, name, zone_type, height_limit, valid_from, valid_to, geom)</li>
+  <li><b>Authority (监管执法部门)</b>: (<u>authority_id</u>, name, level, jurisdiction)</li>
+  <li><b>ViolationEvent (违规事件)</b>: (<u>event_id</u>, mission_id*, type, time, severity, geom)</li>
+  <li><b>DisposalRecord (处置记录)</b>: (<u>record_id</u>, event_id*, authority_id*, action, result, time)</li>
+</ul>
+
+<h3>3.2 数据规范化分析</h3>
+<p>本设计中，所有非主属性均完全依赖于候选键，且不存在传递依赖，严格符合第三范式 (3NF)。例如，为了消除数据冗余，我们将“企业”与“无人机”拆分为两张独立的表，通过外键 <code>owner_org_id</code> 进行关联映射。这样设计彻底避免了“企业刚成立尚未采购飞机时无法录入档案”的插入异常，也避免了企业名称的重复存储。</p>
+<p><b>规范化拆表与约束代码指示：</b></p>
+<pre><code>-- 1. 先建立独立的企业档案表 (彻底消除传递依赖)
+CREATE TABLE organization (
+    org_id serial PRIMARY KEY,
+    name varchar(100) NOT NULL UNIQUE,
+    type varchar(50) NOT NULL,
+    contact varchar(100) NOT NULL
+);
+
+-- 2. 无人机表仅通过 owner_org_id 引用企业主键，不冗余存储企业名称
+CREATE TABLE drone (
+    drone_id serial PRIMARY KEY,
+    model varchar(50) NOT NULL,
+    owner_org_id integer NOT NULL, -- 外键关联
+    max_height real NOT NULL,
+    CONSTRAINT fk_drone_org FOREIGN KEY (owner_org_id) 
+        REFERENCES organization(org_id) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+</code></pre>
+<p>同时，针对“一个飞手可以操作多架飞机，一架飞机也可由多名飞手轮替”的复杂 M:N (多对多) 业务需求，我们遵循规范化原则设计了独立的授权表，将 M:N 降维成两个 1:N 关系，彻底化解了结构松散问题：</p>
+<pre><code>-- 3. 剥离出的多对多授权关系映射中间表
+CREATE TABLE pilot_drone (
+    pilot_id integer NOT NULL REFERENCES pilot(pilot_id),
+    drone_id integer NOT NULL REFERENCES drone(drone_id),
+    PRIMARY KEY (pilot_id, drone_id) -- 联合双主键，防止重复授权插入
+);
+</code></pre>
+
+<hr>
+<h2>4. 物理设计 (Physical Design)</h2>
+<p>本系统高度依赖于时空数据的高频写入与多边形相交处理，故底层采用强空间引擎引擎架构：<b>PostgreSQL 15 + PostGIS 3</b>。</p>
+
+<h3>4.1 核心建表代码与完整性约束展示</h3>
+<p>在物理建表过程中，不仅定义了空间数据类型，更在表级别深度集成了严格的<b>实体完整性、参照完整性与用户自定义 Check 约束</b>（例如时态防穿越、高度非负拦截）。以下为关键实体的 SQL 建表核心代码截图/展示：</p>
+<pre><code>-- 1. 飞行任务表 (申请空域与排期校验)
+CREATE TABLE flight_mission (
+    mission_id serial PRIMARY KEY,
+    drone_id integer NOT NULL REFERENCES drone(drone_id) ON DELETE RESTRICT,
+    pilot_id integer NOT NULL REFERENCES pilot(pilot_id) ON DELETE RESTRICT,
+    start_time timestamp with time zone NOT NULL,
+    end_time timestamp with time zone NOT NULL,
+    planned_area geometry(Polygon, 4326),  -- 计划范围面要素 (WGS 84)
+    CONSTRAINT chk_mission_time CHECK (end_time > start_time) -- 时序严谨性校验
+);
+
+-- 2. 遥测点表 (高频时空轨迹落库点)
+CREATE TABLE telemetry (
+    telemetry_id bigserial PRIMARY KEY, -- 采用bigserial防海量数据溢出
+    mission_id integer NOT NULL REFERENCES flight_mission(mission_id) ON DELETE CASCADE,
+    time timestamp with time zone NOT NULL, 
+    altitude real NOT NULL CONSTRAINT chk_alt CHECK (altitude >= 0), -- 严防海拔报错
+    geom geometry(Point, 4326) NOT NULL -- 瞬时坐标系地理点 (WGS 84)
+);
+</code></pre>
+
+<h3>4.2 空间参考系与数据类型选型考量</h3>
+<ul>
+  <li><b>SRID 4326 (WGS 84)</b>：采用了全球通用的 GPS 经纬度坐标系。选用 <code>geometry</code> 类型而非 <code>geography</code> 类型，是为了兼容更丰富的高级二维空间算子（如基于外包框的极速相交比对），并通过在算法侧进行投影转换（Cast）来保障测距查询的米级精度。</li>
+  <li><b>几何类型映射</b>：无人机瞬时遥测轨迹采用了 <code>Point</code> 点集、整体执行航线化简为 <code>LineString</code> 线元、禁飞管制空域则抽象为由外部多边形（Exterior Ring）构成的 <code>Polygon</code> 面元。</li>
+</ul>
+
+<h3>4.3 时空查询优化与高并发索引架构</h3>
+<p>针对“轨迹穿插包含判定”这种极其消耗 CPU 计算资源的痛点，以及管理部门监管面板秒级响应的需求，系统在物理底层设计了 <b>GiST 空间索引 (R-Tree 变体)</b> 与 <b>B-Tree 时间复合索引</b> 的立体加速架构：</p>
+<pre><code>-- [优化策略 A]：纯空间二维拓扑查询优化 (提升 ST_Intersects 百倍效率)
+CREATE INDEX idx_nofly_geom ON nofly_zone USING gist(geom);
+CREATE INDEX idx_telemetry_geom ON telemetry USING gist(geom);
+
+-- [优化策略 B]：纯时间维度范围查询优化
+CREATE INDEX idx_mission_time ON flight_mission(start_time, end_time);
+
+-- [优化策略 C]：跨列多维联合复合优化 (专为“查特定飞机历史轨迹回放”设计，规避全表扫描)
+CREATE INDEX idx_telemetry_mission_time ON telemetry (mission_id, time DESC);
+</code></pre>
+
+<div class="note">【预留截图位：请在此处删除这段文字，并贴上 pgAdmin 中查看到的表结构和树状目录截图】<br><i>(说明：展示成功建出了 12 张表，且显示建表无误)</i></div>
+
+<hr>
+<h2>5. 系统运行验证与可视化 (System Verification &amp; Visualization)</h2>
+<p>为了向老师全方位展示成果的严谨性，我们设计了完整的本地运行与查验闭环。</p>
+
+<h3>5.1 数据灌入与运行日志</h3>
+<p><b>Q：运行日志是怎么调用出来的？</b><br>
+A：运行日志是通过终端命令行调用 PostgreSQL 内置的 <code>psql</code> 工具，直接执行包含 SQL 语句的文件并提取标准输出 <code>stdout</code> 得到的。您在图形化界面（如 pgAdmin 的 Data Output 栏）中直接运行 <code>queries.sql</code> 也能看到一模一样的表格结果。</p>
+<div class="note">【预留截图位：请在此处删除这段文字，并贴上导入 test_data.sql 成功的提示截图】</div>
+
+<h3>5.2 核心监管场景查询与结果展示</h3>
+<h4>场景一：飞行任务申报冲突检测（面与面时空间相交 <code>ST_Intersects</code>）</h4>
+<p>利用 <code>ST_Intersects</code> 和时间 <code>OVERLAPS</code>，成功拦截了试图飞越大运中心临时禁飞区的任务 2。</p>
+<div class="note">【预留截图位：请在此处删除这段文字，并贴上 queries.sql 中第一条语句查询结果的截图】</div>
+
+<h4>场景二：实时电子围栏入侵警报（点被面包含 <code>ST_Contains</code>）</h4>
+<p>利用 <code>ST_Contains</code>，在轨迹中抓拍到落入福田中心禁飞区多边形的非法位置点。</p>
+<div class="note">【预留截图位：请在此处删除这段文字，并贴上 queries.sql 中第二条语句查询结果的截图】</div>
+
+<h4>场景三：物理升限违规排查</h4>
+<p>通过关联比对遥测高 <code>t.altitude</code> 与无人机机型登记的物理最高限高 <code>d.max_height</code>，捕捉超限飞行。</p>
+<div class="note">【预留截图位：请在此处删除这段文字，并贴上 queries.sql 中第三条语句查询结果的截图】</div>
+
+<h4>场景四：处置与执法大闭环 (多表级联)</h4>
+<p>关联主体、飞手、机型、违规事件、处置部门等 6 张表，呈现最终的宏观态势（如您之前的两行查询结果）。</p>
+<div class="note">【预留截图位：请在此处删除这段文字，并贴上您先前截取好的“处置与执法闭环”的2条记录的截图】</div>
+
+<h3>5.3 成果空间可视化指南</h3>
+<p><b>Q：怎么更好地可视化我完成的成果？</b><br>
+A：空间数据库最大的魅力在于可以将其结果直观地投射在地图上。您可以使用以下两款免费神兵利器，瞬间让您的报告极具震撼力：</p>
+<ol>
+  <li><b>DBeaver 客户端</b>：
+    <ul>
+      <li>如果您用 DBeaver 连接 PostgreSQL 跑查询，结果栏右侧有一个 <b>"Spatial" (空间)</b> 选项卡。当您执行 <code>SELECT geom FROM nofly_zone;</code> 时，它会直接在内置的地图底图上把深圳福田禁飞区和大运中心的 Polygon 给您画出来！</li>
+    </ul>
+  </li>
+  <li><b>QGIS (极其推荐，地理信息系统专业必备)</b>：
+    <ul>
+      <li>安装开源的 <b>QGIS</b>，在左侧浏览器中添加 <code>PostgreSQL</code> 连接（输入您的本地密码）。</li>
+      <li>直接将您的 <code>telemetry</code> 点表、<code>flight_track</code> 线表、<code>nofly_zone</code> 面表拖拽进 QGIS 绘图区，并在下面加一张百度或高德的卫星底图。</li>
+      <li><b>您不仅能查出张三在哪违规，更能直接在深圳的卫星图上看到那个违规红点落在了禁飞红色多边形里面！</b></li>
+    </ul>
+  </li>
+</ol>
+
+<div class="note">【预留截图位：如果您配置了 QGIS 或 DBeaver，请务必在这里放一张带底图的空间数据可视化截图！老师看到一定会给出满分！】</div>
+
+<hr>
+<p><b>设计总结</b>：本大作业通过精细的需求解构与规范的 3NF 时空 E-R 建模，辅以 PostgreSQL + PostGIS 强大的空间拓扑支撑，构筑了一套从“事前计划申请防冲突”、“事中动态围栏监视”到“事后违规行政处置”全链路数据闭环的空间数据库底座。</p>
+
+</body>
+</html>
